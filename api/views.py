@@ -21,26 +21,17 @@ def user_login(request):
         return Response({'msg': 'Already logged in'}, status=status.HTTP_400_BAD_REQUEST)
     
     data = request.data
-    email = data.get('email', 'ab@ab.com')
-    password = data.get('password', '1234')
-
-    status_code = status.HTTP_400_BAD_REQUEST
+    email, password = data.get('email', 'ab@ab.com'),data.get('password', '1234')
 
     if not email or not password:
-        msg = 'Please provide both email and password'
+        return Response({'msg': 'Please provide both email and password'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = authenticate(email=email, password=password)
     if user:
         login(request, user)
-        msg = 'Login successful'
-        status_code = status.HTTP_200_OK
-    else:
-        msg = 'Invalid credentials'
-    response ={
-        'msg': msg,
-        'status_code': status_code
-    }
-    return Response(response)
+        return Response({'msg': 'Login successful'}, status=status.HTTP_200_OK)
+    return Response({'msg': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 #list and create user accounts
@@ -51,7 +42,7 @@ class user_ListCreate(generics.ListCreateAPIView):
 
 
 
-#view and update profile (eg. password reset)
+#view and update profile
 class profile_ViewUpdate(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -59,11 +50,6 @@ class profile_ViewUpdate(generics.RetrieveUpdateAPIView):
     
     def get_object(self):
         return self.request.user
-    
-    def retrieve(self, request, *args, **kwargs):
-        user = self.get_object()
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
     
 
 
@@ -91,7 +77,7 @@ class group_ListCreate(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         name = request.data.get('name')
         if Group.objects.filter(name__iexact=name).exists(): 
-            return Response({'Error': 'Group name already exists'})
+            return Response({'Error': 'Group name already exists'}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
     
     def perform_create(self, serializer):
@@ -102,8 +88,37 @@ class group_ListCreate(generics.ListCreateAPIView):
 
 
 #view group details
-class group_detail(generics.RetrieveAPIView):
+class group_Detail(generics.RetrieveAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupDetailSerializer
     permission_classes = [IsAuthenticated]
     lookup_url_kwarg = "g_id"
+
+
+#view messages of specific group
+class group_Message(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        group_id = request.data.get('group_id')
+        if not group_id:
+            return Response({"error": "group_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        #check if user is a member of the group
+        group = get_object_or_404(Group, id=group_id)
+        if not group.members.filter(user=request.user).exists():
+            return Response({"error": "You are not a member of this group"}, status=status.HTTP_403_FORBIDDEN) 
+
+        serializer = GroupMsg_combinedSerializer(group)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class create_Message(generics.CreateAPIView):
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    #set sender to current user 
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)

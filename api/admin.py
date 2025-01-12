@@ -13,7 +13,8 @@ class GroupMemberInline(admin.TabularInline):
 
 class GroupAdmin(admin.ModelAdmin):
     inlines = [GroupMemberInline]
-    list_display = ('name', 'created_by', 'created_at')
+    list_display = ('name', 'id','created_by', 'created_at')
 
 admin.site.register(Group, GroupAdmin)
 # admin.site.register(Group_member)
+admin.site.register(Message)

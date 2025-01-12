@@ -64,7 +64,7 @@ class GroupMemberSerializer(serializers.ModelSerializer):
 
 class GroupDetailSerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
-    members = GroupMemberSerializer(many= True, read_only=True)
+    members = serializers.SerializerMethodField()
     class Meta:
         model = Group
         fields = (
@@ -75,3 +75,51 @@ class GroupDetailSerializer(serializers.ModelSerializer):
             'created_by',
             'members'
         )
+    
+    def get_members(self, obj):
+        members = obj.members.order_by('-is_admin','user__name')
+        return GroupMemberSerializer(members, many=True).data
+
+
+
+
+#messages of a group , including group details and sender details
+class MessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+    class Meta:
+        model = Message
+        fields = (
+            'id',
+            'group',
+            'sender',            
+            'message',
+            'sent_time',
+        )
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data.pop('group')
+        data['sent_time'] = instance.sent_time.strftime("%d %b %Y %H:%M:%S")
+        return data
+    
+   
+class GroupMsg_combinedSerializer(serializers.ModelSerializer):
+    messages = serializers.SerializerMethodField()
+    group_id = serializers.UUIDField(source='id')
+    group_name = serializers.CharField(source='name')
+    group_icon = serializers.ImageField(source='icon')
+    class Meta:
+        model = Group
+        fields = (
+            'group_id',
+            'group_name',
+            'group_icon',
+            'messages'
+        )
+    
+    def get_messages(self, obj):
+        messages = obj.messages.order_by('sent_time')
+        if not messages:
+            return {'msg': 'No Message in this group yet'}
+        return MessageSerializer(messages, many=True).data
+        
