@@ -37,9 +37,28 @@ def user_login(request):
 #list and create user accounts
 class user_ListCreate(generics.ListCreateAPIView):
     queryset = User.objects.exclude(isAdmin=True)
+    serializer_class = UserSerializer 
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            self.permission_classes = [IsAuthenticated, AllowAny]  
+        elif self.request.method == 'POST':
+            self.permission_classes = [IsAuthenticated, IsAdminUser]
+
+        return super().get_permissions()
+
+
+#delete user account
+class user_Delete(generics.DestroyAPIView):
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsAdminUser] 
+    lookup_url_kwarg = "u_id"
 
+    def destroy(self, request, *args, **kwargs):
+        user = self.get_object()
+        if user.is_superuser:
+            return Response({'Error': 'Cannot delete superuser'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().destroy(request, *args, **kwargs)
 
 
 #view and update profile
@@ -52,13 +71,6 @@ class profile_ViewUpdate(generics.RetrieveUpdateAPIView):
         return self.request.user
     
 
-
-#delete user account
-class user_Delete(generics.DestroyAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_url_kwarg = "u_id"
 
 
 #list and create groups

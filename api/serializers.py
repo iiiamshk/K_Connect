@@ -6,8 +6,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'email',
             'name',
+            'email',
             'phone',
             'password'
         )
@@ -94,6 +94,7 @@ class MessageSerializer(serializers.ModelSerializer):
             'sender',            
             'message',
             'sent_time',
+            'msg_type',
         )
     
     def to_representation(self, instance):

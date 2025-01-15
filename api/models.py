@@ -47,12 +47,19 @@ class Group_member(models.Model):
         return self.user.name 
     
 class Message(models.Model):
+    MSG_TYPE = [
+        ('General', 'General'),
+        ('Emergency', 'Emergency'),
+        ('Holiday', 'Holiday'),
+        ('Exam Notice', 'Exam Notice'),
+    ]
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
     files = models.FileField(upload_to='group_files/', null=True, blank=True)
     sent_time = models.DateTimeField(auto_now_add=True)
+    msg_type = models.CharField(max_length=20, choices=MSG_TYPE, default='General')
 
     def __str__(self):
         return str(self.id)
