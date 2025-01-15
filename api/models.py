@@ -6,7 +6,10 @@ import uuid
 # Create your models here.
 # email: admin@kconnect.in
 # pass: 1234
+#pythonanywhere superadmin: 12ErKcoonect$3
+
 class User(AbstractUser):
+    
     username = None
     first_name = None
     last_name = None
