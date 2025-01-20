@@ -45,7 +45,7 @@ ROOT_URLCONF = 'k_connect.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -116,12 +116,21 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #manually added
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+# STATICFILES_DIRS = [
+#     BASE_DIR / "static",
+# ]
 
+STATIC_ROOT =[ BASE_DIR / "static"]
 
 AUTH_USER_MODEL = 'api.User'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+# 465
+EMAIL_HOST_USER = 'test.mailotp96@gmail.com'
+EMAIL_HOST_PASSWORD = 'kmngwrkcpnszmagu'
+EMAIL_USE_TLS = True
+

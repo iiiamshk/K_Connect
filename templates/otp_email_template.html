@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification</title>
+</head>
+<body>
+    <div class="email-container" style="max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;">
+        <!-- Header -->
+        <div class="email-header" style="
+            background-color: #4CAF50;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;">
+            <h1 style="margin: 0;
+            font-size: 24px;">OTP Verification</h1>
+        </div>
+        <!-- Body -->
+        <div class="email-body" style=" padding: 20px 30px;
+            color: #333333;
+            text-align: center;">
+            <p style="font-size: 1.2em !important;
+                margin: 1rem 0;">Hello,</p>
+            <p>Use the following OTP to verify your K-Connect account. This OTP is valid for the next <strong>3 minutes</strong>.</p>
+            <div class="otp-code" style="display: inline-block;
+            margin: 20px 0;
+            font-size: 32px;
+            color: #4CAF50;
+            font-weight: bold;
+            letter-spacing: 4px;
+            padding: 10px 20px;
+            border: 1px dashed #4CAF50;
+            border-radius: 8px;">{{OTP}}</div>
+            <p>If you didn’t request this, you can safely ignore this email.</p>
+        </div>
+        <!-- Footer -->
+        <div class="email-footer" style=" background-color: #f9f9f9;
+            color: #888888;
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;">
+            <p>&copy; {{CurrentYear}} K-Connect. All rights reserved.</p>
+            <!-- <p><a href="https://myapp.com" style="color: #4CAF50;
+            text-decoration: none;">Visit our website</a> | <a href="mailto:support@myapp.com">Contact Support</a></p> -->
+        </div>
+    </div>
+
+    <script>
+        otp_div = document.querySelector('.otp-code');
+        // seperate each char of otp-code
+        otp_div.innerHTML = otp_div.innerHTML.split('').join(' ');
+    </script>
+</body>
+</html>
+

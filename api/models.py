@@ -1,7 +1,7 @@
 from django.db import models
 from .manager import UserManager
 from django.contrib.auth.models import AbstractUser
-import uuid
+import uuid, pyotp
 
 # Create your models here.
 # email: admin@kconnect.in
@@ -18,11 +18,18 @@ class User(AbstractUser):
     name = models.CharField(max_length=25)
     phone = models.CharField(max_length=15)
     isAdmin = models.BooleanField(default=False)
+    otp_secret = models.CharField(max_length=32, null=True, blank=True)
 
     USERNAME_FIELD="email"
     REQUIRED_FIELDS= ['name']
 
     objects= UserManager()
+
+    def save(self, *args, **kwargs):
+        if not self.otp_secret:
+            self.otp_secret = pyotp.random_base32()
+        super().save(*args, **kwargs)  
+
     def __str__(self):
         return self.email
     
