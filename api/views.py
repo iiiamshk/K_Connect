@@ -9,6 +9,10 @@ from django.http import JsonResponse
 
 from .models import User, Group, Group_member
 from api.serializers import *
+from . import utils
+import pyotp
+
+
 # Create your views here.
 
 def logoutView(request):
@@ -18,19 +22,53 @@ def logoutView(request):
 @api_view(['POST'])
 def user_login(request):
     if request.user.is_authenticated:
-        return Response({'msg': 'Already logged in'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'You are already logged in.'}, status=status.HTTP_400_BAD_REQUEST)
     
     data = request.data
-    email, password = data.get('email', 'ab@ab.com'),data.get('password', '1234')
+    email, password = data.get('email'),data.get('password')
 
     if not email or not password:
-        return Response({'msg': 'Please provide both email and password'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Both email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = authenticate(email=email, password=password)
     if user:
-        login(request, user)
-        return Response({'msg': 'Login successful'}, status=status.HTTP_200_OK)
-    return Response({'msg': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+        totp = pyotp.TOTP(user.otp_secret, interval=180)  # otp valid for 3 min(180 sec) 
+        otp = totp.now() 
+
+        email_sent = utils.send_otp_mail(otp, user.email)
+        if not email_sent:
+            return Response({'error': 'Failed to send OTP. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+
+        return Response( {"message": "OTP sent successfully.","expires_in": "180 seconds"}, status=status.HTTP_200_OK)
+    
+    return Response({"error": "Invalid email or password."}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+@api_view(['POST'])
+def verify_otp(request):
+    if request.user.is_authenticated:
+         return Response({'message': 'You are already logged in.'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    data = request.data
+    email, otp = data.get('email', ''), data.get('otp', '')
+
+    if not email or not otp:
+        return Response({'error': 'Both email and otp are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(email=email)
+        totp = pyotp.TOTP(user.otp_secret, interval= 180) 
+
+        if totp.verify(otp, valid_window = 1):
+            login(request, user)
+            return Response({ "message": "OTP verified successfully. Login complete."},status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid OTP. Please try again."}, status=status.HTTP_400_BAD_REQUEST)
+        
+    except User.DoesNotExist:
+        return Response({"error": "User with the provided email does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
 
 
@@ -57,7 +95,7 @@ class user_Delete(generics.DestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         user = self.get_object()
         if user.is_superuser:
-            return Response({'Error': 'Cannot delete superuser'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Cannot delete superuser'}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
 
 
@@ -89,13 +127,13 @@ class group_ListCreate(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         name = request.data.get('name')
         if Group.objects.filter(name__iexact=name).exists(): 
-            return Response({'Error': 'Group name already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Group name already exists'}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
     
     def perform_create(self, serializer):
         #the user creating the group is automatically added as a member
         group = serializer.save(created_by=self.request.user)
-        Group_member.objects.create(group=group, user=self.request.user)
+        Group_member.objects.create(group=group, user=self.request.user, is_admin = True)
 
 
 

@@ -2,3 +2,4 @@ django
 requests
 djangorestframework
 pillow
+pyotp
