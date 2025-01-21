@@ -110,7 +110,6 @@ class profile_ViewUpdate(generics.RetrieveUpdateAPIView):
     
 
 
-
 #list and create groups
 class group_ListCreate(generics.ListCreateAPIView):
     queryset = Group.objects.all()
@@ -123,17 +122,22 @@ class group_ListCreate(generics.ListCreateAPIView):
     #         self.permission_classes = [AllowAny] 
     #     return super().get_permissions()
 
-    #check if group name already exists
     def create(self, request, *args, **kwargs):
-        name = request.data.get('name')
-        if Group.objects.filter(name__iexact=name).exists(): 
+        #check if group name already exists
+        group_name = request.data.get('name')
+        if Group.objects.filter(name__iexact=group_name).exists(): 
             return Response({'error': 'Group name already exists'}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
     
     def perform_create(self, serializer):
-        #the user creating the group is automatically added as a member
+        members = serializer.validated_data.pop('members', [])
+
+        print("perform_create ", members, type(members))
+
         group = serializer.save(created_by=self.request.user)
         Group_member.objects.create(group=group, user=self.request.user, is_admin = True)
+        if members:
+            utils.add_group_member(group, members)
 
 
 
@@ -172,3 +176,25 @@ class create_Message(generics.CreateAPIView):
     #set sender to current user 
     def perform_create(self, serializer):
         serializer.save(sender=self.request.user)
+
+
+
+class add_GroupMembers(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        group_id = request.data.get('group_id')
+        
+        if not group_id:
+            return Response({"error": "group_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        group = get_object_or_404(Group, id=group_id)
+        members = request.data.get('members', [])
+        if not members:
+            return Response({'error': 'No members provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            utils.add_group_member(group, members)
+            return Response({'message': 'Members added successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

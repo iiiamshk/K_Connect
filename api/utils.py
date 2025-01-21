@@ -1,5 +1,7 @@
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from .models import *
+from django.shortcuts import get_object_or_404
 
 def send_otp_mail(otp, user_email):
     # send otp to email
@@ -21,3 +23,14 @@ def send_otp_mail(otp, user_email):
     except Exception as e:
         print(e)
         return False
+    
+
+
+def add_group_member(group, members):
+    for member_id in members:
+        user = get_object_or_404(User, id=member_id)
+        if not Group_member.objects.filter(group=group, user=user).exists():
+            Group_member.objects.create(group=group, user=user)
+
+
+

@@ -37,6 +37,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 class GroupSerializer(serializers.ModelSerializer):
     # created_by = UserSerializer(read_only=True)
+    members = serializers.MultipleChoiceField(
+        choices=[],
+        write_only=True,
+        required=False,
+        help_text="Select group members"
+    )
     class Meta:
         model = Group
         fields = (
@@ -44,7 +50,33 @@ class GroupSerializer(serializers.ModelSerializer):
             'name',
             'description',
             'icon',
+            'members'
         )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields['members'].choices = [
+            (user.id, user.email) for user in User.objects.exclude(isAdmin = True)
+        ]
+    
+    def validate_members(self, value):
+        print(value, type(value))
+        if not value:
+            return []
+        value = [int(member_id) for member_id in value]
+        print('v: ', value) 
+        return value
+    
+    #     print(value, type(value))
+    #     if not value:
+    #         return []
+    #     try:
+    #         value = [int(member_id) for member_id in value]
+    #         return value
+    #     except ValueError:
+    #         raise serializers.ValidationError("All member IDs should be integers.")
+
     
 
   
