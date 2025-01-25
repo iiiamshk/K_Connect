@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="{% static 'cAdmin/css/login.css' %}">
+</head>
+<body>
+    <form id="login">
+            {% csrf_token %}
+            <input type="email" name="email" id="login_email" placeholder="email"> 
+            <input type="password" name="password" id="password" placeholder="password">
+            <input type="submit" value="login">
+        </form>
+    
+        <form action="{% url "login_verify" %}" id="otpform" hidden>
+            {% csrf_token %}
+            <input type="email" name="email" id="otp_email" value ="" hidden>
+            <input type="text" name="otp" id="otp" placeholder="otp">
+            <input type="submit" value="verify">
+        </form>
+    
+        <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+
+        <script>
+            $("#login").submit(function(e){
+                e.preventDefault()
+                var email = $("#login_email").val()
+                $.ajax({
+                    url:"{% url 'login' %}",
+                    method:"POST",
+                    data: $(this).serialize(),
+                    success:function(resp){
+    
+                        if(resp.status == 200){
+                            $("#otp_email").val(email)
+                            
+                            $("#login").trigger("reset").hide();
+                            $("#otpform").show()
+                            
+                            
+                            otpExpire = (resp.data?.expires_in)/ 60
+                            console.log(resp, otpExpire);
+                            
+                            
+                        }
+                        else{
+                            alert(resp.data?.error)
+                            console.log(resp.data);
+                        }                           
+                    }
+                })
+            })
+    
+            $("#otpform").submit(function(e){
+                e.preventDefault()
+                
+               $.ajax({
+                    url:"{% url 'login_verify' %}",
+                    method:"POST",
+                    data: $(this).serialize(),
+                    success:function(resp){
+                        console.log(resp);
+                        
+    
+                        if(resp.status == 200){
+                            alert(resp.data.message);                      
+                            window.location.href = "{% url 'admin_home' %}"                        
+                        }
+                        else{
+                            alert(resp.data?.error)
+                        } 
+                        
+                    }
+                })
+                $('#otp').val("")
+            })
+                      
+        </script>
+    
+</body>
+</html>

@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'api',
 ]
 
@@ -116,11 +117,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #manually added
 
-# STATICFILES_DIRS = [
-#     BASE_DIR / "static",
-# ]
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
-STATIC_ROOT =[ BASE_DIR / "static"]
+# STATIC_ROOT =[ BASE_DIR / "static"] 
 
 AUTH_USER_MODEL = 'api.User'
 
@@ -134,3 +135,11 @@ EMAIL_HOST_USER = 'test.mailotp96@gmail.com'
 EMAIL_HOST_PASSWORD = 'kmngwrkcpnszmagu'
 EMAIL_USE_TLS = True
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        # 'rest_framework.authentication.TokenAuthentication',
+        'api.tokenAuth.CookieTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}

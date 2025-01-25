@@ -2,6 +2,7 @@ from rest_framework import status, generics
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from django.contrib.auth import login, authenticate, logout
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
@@ -15,9 +16,9 @@ import pyotp
 
 # Create your views here.
 
-def logoutView(request):
-    logout(request)
-    return JsonResponse({'msg': 'Logged out successfully'}, status=status.HTTP_200_OK)
+# def logoutView(request):
+#     logout(request)
+#     return JsonResponse({'msg': 'Logged out successfully'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def user_login(request):
@@ -40,7 +41,7 @@ def user_login(request):
             return Response({'error': 'Failed to send OTP. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
 
-        return Response( {"message": "OTP sent successfully.","expires_in": "180 seconds"}, status=status.HTTP_200_OK)
+        return Response( {"message": "OTP sent successfully.","expires_in": 180}, status=status.HTTP_200_OK)
     
     return Response({"error": "Invalid email or password."}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -62,14 +63,33 @@ def verify_otp(request):
         totp = pyotp.TOTP(user.otp_secret, interval= 180) 
 
         if totp.verify(otp, valid_window = 1):
-            login(request, user)
-            return Response({ "message": "OTP verified successfully. Login complete."},status=status.HTTP_200_OK)
+            
+            token, created = Token.objects.get_or_create(user=user)
+
+            return Response({
+                "message": "OTP verified. Login complete.",
+                'authToken': token.key,
+                'user_name': user.username,
+            }, status=status.HTTP_200_OK)
+        
         else:
             return Response({"error": "Invalid OTP. Please try again."}, status=status.HTTP_400_BAD_REQUEST)
         
     except User.DoesNotExist:
         return Response({"error": "User with the provided email does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
+
+class logoutView(APIView):
+    def post(self, request):
+        token = request.COOKIES.get('authToken')
+        if token:
+            try:
+                Token.objects.get(key=token).delete()
+            except Token.DoesNotExist:
+                pass
+        response = Response({'message': 'Logged out successfully'}, status=status.HTTP_200_OK)
+        response.delete_cookie('authToken')
+        return response
 
 
 #list and create user accounts
@@ -78,7 +98,7 @@ class user_ListCreate(generics.ListCreateAPIView):
     serializer_class = UserSerializer 
     def get_permissions(self):
         if self.request.method == 'GET':
-            self.permission_classes = [IsAuthenticated, AllowAny]  
+            self.permission_classes = [IsAuthenticated]  
         elif self.request.method == 'POST':
             self.permission_classes = [IsAuthenticated, IsAdminUser]
 
@@ -114,14 +134,22 @@ class profile_ViewUpdate(generics.RetrieveUpdateAPIView):
 class group_ListCreate(generics.ListCreateAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
 
-    # def get_permissions(self):
-    #     self.permission_classes = [IsAuthenticated]
-    #     if self.request.method == 'GET':
-    #         self.permission_classes = [AllowAny] 
-    #     return super().get_permissions()
-
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            self.permission_classes = [IsAuthenticated] 
+        elif self.request.method == 'POST':
+            self.permission_classes = [IsAuthenticated, IsAdminUser]
+        return super().get_permissions()
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.isAdmin:
+            return Group.objects.all()
+        else:            
+            return Group.objects.filter(members__user=user)  
+        
+        
     def create(self, request, *args, **kwargs):
         #check if group name already exists
         group_name = request.data.get('name')
@@ -131,8 +159,6 @@ class group_ListCreate(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         members = serializer.validated_data.pop('members', [])
-
-        print("perform_create ", members, type(members))
 
         group = serializer.save(created_by=self.request.user)
         Group_member.objects.create(group=group, user=self.request.user, is_admin = True)

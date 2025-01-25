@@ -68,15 +68,6 @@ class GroupSerializer(serializers.ModelSerializer):
         print('v: ', value) 
         return value
     
-    #     print(value, type(value))
-    #     if not value:
-    #         return []
-    #     try:
-    #         value = [int(member_id) for member_id in value]
-    #         return value
-    #     except ValueError:
-    #         raise serializers.ValidationError("All member IDs should be integers.")
-
     
 
   

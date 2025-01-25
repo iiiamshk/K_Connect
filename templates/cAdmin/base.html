@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock title %}</title>
+    <link rel="stylesheet" href="{% static 'cAdmin/css/base.css' %}">
+    {% block css %} {%endblock css %}
+</head>
+<body>
+    <nav>
+        <div class="logo">
+            <img src="" alt="">
+            <h3>K-Connect</h3>
+        </div>
+        <div class="nav-links">
+            <ul>
+                <li><a href="{% url "admin_home" %}">Home</a></li>
+                <li><a href="{% url "group" %}">Groups</a> </li>
+                <li><a href="{% url "account" %}">Account</a></li>
+
+                <li>
+                    <form action="{% url "logout" %}" method="POST">
+                        {% csrf_token %}
+                        <input type="submit" value="logout">
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        {% block main %} {% endblock main %}
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+
+    {% block js %} {% endblock js %}    
+</body>
+</html>
